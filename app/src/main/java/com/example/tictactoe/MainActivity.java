@@ -176,18 +176,20 @@ public class MainActivity extends AppCompatActivity
     
     private void applyPlayerTurn(String playerUniqueId2)
     {
-        if (playerUniqueId2.equals(playerUniqueId))
-        {
-            // check backgrounds again
-            player1Layout.setBackgroundResource(drawable.transparent_background);
-            player2Layout.setBackgroundResource(drawable.transparent_background);
-        }
-        else
-        {
-            // check backgrounds again
-            player2Layout.setBackgroundResource(drawable.transparent_background);
-            player1Layout.setBackgroundResource(drawable.transparent_background);
-        }
+//        if (playerUniqueId2.equals(playerUniqueId))
+//        {
+//            // check backgrounds again
+//            player1Layout.setBackgroundResource(drawable.transparent_background);
+//            player2Layout.setBackgroundResource(drawable.transparent_background);
+//        }
+//        else
+//        {
+//            // check backgrounds again
+//            player2Layout.setBackgroundResource(drawable.transparent_background);
+//            player1Layout.setBackgroundResource(drawable.transparent_background);
+//        }
+    
+    
     }
     
 }
