@@ -8,8 +8,9 @@
         <entry key="..\:/Users/farou/AndroidStudioProjects/TicTacToe/app/src/main/res/drawable/round_back_white_100.xml" value="0.129" />
         <entry key="..\:/Users/farou/AndroidStudioProjects/TicTacToe/app/src/main/res/drawable/round_back_white_20.xml" value="0.1255" />
         <entry key="..\:/Users/farou/AndroidStudioProjects/TicTacToe/app/src/main/res/drawable/round_back_white_stroke.xml" value="0.1255" />
-        <entry key="..\:/Users/farou/AndroidStudioProjects/TicTacToe/app/src/main/res/layout/activity_main.xml" value="0.16" />
-        <entry key="..\:/Users/farou/AndroidStudioProjects/TicTacToe/app/src/main/res/layout/activity_player_name.xml" value="0.152" />
+        <entry key="..\:/Users/farou/AndroidStudioProjects/TicTacToe/app/src/main/res/layout/activity_main.xml" value="0.176" />
+        <entry key="..\:/Users/farou/AndroidStudioProjects/TicTacToe/app/src/main/res/layout/activity_player_name.xml" value="0.176" />
+        <entry key="..\:/Users/farou/AndroidStudioProjects/TicTacToe/app/src/main/res/layout/win_dialog_layout.xml" value="0.264" />
       </map>
     </option>
   </component>

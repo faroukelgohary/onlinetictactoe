@@ -8,7 +8,6 @@
     tools:context=".MainActivity">
 
     // player boxes
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -17,7 +16,6 @@
         android:orientation="horizontal">
 
         // player 1 box
-
         <LinearLayout
             android:id="@+id/player1Layout"
             android:layout_width="120dp"
@@ -101,7 +99,6 @@
         </LinearLayout>
 
         // player 2 box
-
         <LinearLayout
             android:id="@+id/player2Layout"
             android:layout_width="120dp"
