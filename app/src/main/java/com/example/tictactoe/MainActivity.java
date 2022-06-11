@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -34,7 +35,10 @@ public class MainActivity extends AppCompatActivity
     private TextView player1TV, player2TV, player1pointTV,player2pointTV, tieTV;
     
     // tie counter
-    private int ties = 0;
+    private int tieScore = 0;
+    private int player1Score = 0;
+    private int player2Score = 0;
+    
     // winning combinations
     private final List<int[]> combinationsList = new ArrayList<>();
     
@@ -47,8 +51,11 @@ public class MainActivity extends AppCompatActivity
     // getting firebase database reference from URL
     DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReferenceFromUrl("https://tictactoe-ce6a0-default-rtdb.firebaseio.com/");
     
-    // true when opponent will  be found to play the game
+    // true when opponent will be found to play the game
     private boolean opponentFound = false;
+    
+    // true when player clicks rematch
+    private boolean rematch = false;
     
     // opponent unique ID
     private String opponentUniqueId = "0";
@@ -60,8 +67,10 @@ public class MainActivity extends AppCompatActivity
     // player turn
     private String playerTurn = "";
     
+    
     // connection ID in which the player has joined to play the game
     private String connectionID = "";
+    
     
     // Generating ValueEventListeners for Firebase Database
     // turnsEventListener listens for the players turns
@@ -71,9 +80,11 @@ public class MainActivity extends AppCompatActivity
     // selected boxes by players
     // empty fields will be replaced by player ids
     private final String[] boxesSelectedBy = {"","","","","","","","",""};
+    
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
+        
         super.onCreate(savedInstanceState);
         setContentView(layout.activity_main);
         
@@ -129,6 +140,9 @@ public class MainActivity extends AppCompatActivity
         progressDialog.setMessage("Waiting for Opponent");
         progressDialog.show();
         
+        // clearing the database
+//        databaseReference=FirebaseDatabase.getInstance().getReference("connections");
+//        databaseReference.setValue(null);
         
         // generate player unique id, Player will be identified by this id
         playerUniqueId = String.valueOf(System.currentTimeMillis());
@@ -144,9 +158,8 @@ public class MainActivity extends AppCompatActivity
                 // check if opponent found or not, if not then look for the opponent
                 if (!opponentFound)
                 {
-                    
                     // checking if there are other players in the firebase realtime database
-                    if (snapshot.hasChildren())
+                    if (snapshot.hasChildren() || rematch)
                     {
                         // checking all connections if other users are also waiting for a user to play the match
                         for (DataSnapshot connections : snapshot.getChildren())
@@ -174,23 +187,23 @@ public class MainActivity extends AppCompatActivity
                                     // getting players in connection
                                     for(DataSnapshot players : connections.getChildren())
                                     {
-                                        String getPlayerUniqueID = players.getKey();
+                                        String get2ndPlayerUniqueID = players.getKey();
                                         
                                         // check if player id match with player who created connection (this player)
                                         // if match then get opponent details
-                                        if (getPlayerUniqueID.equals(playerUniqueId))
-                                        {
+                                        if (get2ndPlayerUniqueID.equals(playerUniqueId))
+                                        {   // traceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
                                             playerFound = true;
                                         }
                                         else if (playerFound)
                                         {
-                                            String getOpponentPlayerName = players.child("plsyer_name").getValue(String.class);
+                                            String getOpponentPlayerName = players.child("player_name").getValue(String.class);
                                             opponentUniqueId = players.getKey();
                                             
                                             // set opponent playername to TextView
                                             player2TV.setText(getOpponentPlayerName);
                                             
-                                            // assigning connection ID
+                                            // assigning connection/room ID
                                             connectionID = conId;
                                             opponentFound = true;
                                             
@@ -204,7 +217,7 @@ public class MainActivity extends AppCompatActivity
                                                 progressDialog.dismiss();
                                             }
                                             
-                                            // once the connection has made remove connectionListener from Database Reference
+                                            // once the connection is made, remove connectionListener from Database Reference
                                             databaseReference.child("connections").removeEventListener(this);
                                             
                                         }
@@ -212,7 +225,7 @@ public class MainActivity extends AppCompatActivity
                                 }
                             }
                             
-                            // in case player has not created the connection/room because of other rooms are not available to join
+                            // in case the player has not created the connection/room because of other rooms are not available to join
                             else
                             {
                                 // checking if the connections has 1 player waiting and needs 1 more player to play then join this connection
@@ -231,7 +244,7 @@ public class MainActivity extends AppCompatActivity
                                         playerTurn = opponentUniqueId;
                                         applyPlayerTurn(playerTurn);
                                         
-                                        // setting playername to the TextView
+                                        // setting the opponent's playername to the TextView
                                         player2TV.setText(getOpponentName);
                                         
                                         // assigning connection ID
@@ -254,14 +267,25 @@ public class MainActivity extends AppCompatActivity
                                         break;
                                     }
                                 }
-                                
                             }
                         }
+    
+                        // check if opponent is not found and user is not waiting for the opponent anymore
+                        // then create a new connection
+                        if (!opponentFound && !status.equals("waiting"))
+                        {
+                            // generating unique ID for the connection
+                            String connectionUniqueId = String.valueOf(System.currentTimeMillis());
+        
+                            // adding first player to the connection and waiting for another player to connect and play
+                            snapshot.child(connectionUniqueId).child(playerUniqueId).child("player_name").getRef().setValue(getPlayerName);
+        
+                            status = "waiting";
+                        }
                     }
-                    
-                    // check if opponent is not found and user is not waiting for the opponent anymore
-                    // then create a new connection
-                    if (!opponentFound && status.equals("waiting"))
+                    // if there is no connection available in the firebase database then create a new connection
+                    // it is like creating a new room and waiting for another player to join the room
+                    else
                     {
                         // generating unique ID for the connection
                         String connectionUniqueId = String.valueOf(System.currentTimeMillis());
@@ -271,19 +295,6 @@ public class MainActivity extends AppCompatActivity
     
                         status = "waiting";
                     }
-                }
-                
-                // if there is no connection available in the firebase database then create a new connection
-                // it is like creating a new room and waiting for another player to join the room
-                else
-                {
-                    // generating unique ID for the connection
-                    String connectionUniqueId = String.valueOf(System.currentTimeMillis());
-                    
-                    // adding first player to the connection and waiting for another player to connect and play
-                    snapshot.child(connectionUniqueId).child(playerUniqueId).child("player_name").getRef().setValue(getPlayerName);
-                    
-                    status = "waiting";
                 }
             }
     
@@ -311,6 +322,7 @@ public class MainActivity extends AppCompatActivity
                         final String getPlayerID = dataSnapshot.child("player_id").getValue(String.class);
                         
                         // checking if the player has not selected the box before
+                        // to avoid connection errors
                         if (!doneBoxes.contains(String.valueOf(getBoxPosition)))
                         {
                             // select the box
@@ -382,15 +394,17 @@ public class MainActivity extends AppCompatActivity
                         winDialog = new WinDialog(MainActivity.this, "You have won the game");
                         
                         // update player 1 score
-                        //
+//                        player1Score++;
+//                        player1pointTV.setText(player1Score);
                     }
                     else
                     {
                         // show win dialog
-                        winDialog = new WinDialog(MainActivity.this, "Opponent has won the game");
+                        winDialog = new WinDialog(MainActivity.this, "You have lost the game");
                         
                         // update player 2 score
-                        //
+//                        player2Score++;
+//                        player2pointTV.setText(player2Score);
                     }
                     
                     winDialog.setCancelable(false);
@@ -415,7 +429,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v)
             {
                 // check if the box is not selected before & current player's turn
-                if (doneBoxes.contains("1") && playerTurn.equals(playerUniqueId))
+                if (!doneBoxes.contains("1") && playerTurn.equals(playerUniqueId))
                 {
                     ((ImageView)v).setImageResource(drawable.new_x_icon);
                     
@@ -438,7 +452,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v)
             {
                 // check if the box is not selected before & current player's turn
-                if (doneBoxes.contains("2") && playerTurn.equals(playerUniqueId))
+                if (!doneBoxes.contains("2") && playerTurn.equals(playerUniqueId))
                 {
                     ((ImageView)v).setImageResource(drawable.new_x_icon);
     
@@ -461,7 +475,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v)
             {
                 // check if the box is not selected before & current player's turn
-                if (doneBoxes.contains("3") && playerTurn.equals(playerUniqueId))
+                if (!doneBoxes.contains("3") && playerTurn.equals(playerUniqueId))
                 {
                     ((ImageView)v).setImageResource(drawable.new_x_icon);
     
@@ -484,7 +498,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v)
             {
                 // check if the box is not selected before & current player's turn
-                if (doneBoxes.contains("4") && playerTurn.equals(playerUniqueId))
+                if (!doneBoxes.contains("4") && playerTurn.equals(playerUniqueId))
                 {
                     ((ImageView)v).setImageResource(drawable.new_x_icon);
     
@@ -507,7 +521,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v)
             {
                 // check if the box is not selected before & current player's turn
-                if (doneBoxes.contains("5") && playerTurn.equals(playerUniqueId))
+                if (!doneBoxes.contains("5") && playerTurn.equals(playerUniqueId))
                 {
                     ((ImageView)v).setImageResource(drawable.new_x_icon);
     
@@ -530,7 +544,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v)
             {
                 // check if the box is not selected before & current player's turn
-                if (doneBoxes.contains("6") && playerTurn.equals(playerUniqueId))
+                if (!doneBoxes.contains("6") && playerTurn.equals(playerUniqueId))
                 {
                     ((ImageView)v).setImageResource(drawable.new_x_icon);
     
@@ -553,7 +567,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v)
             {
                 // check if the box is not selected before & current player's turn
-                if (doneBoxes.contains("7") && playerTurn.equals(playerUniqueId))
+                if (!doneBoxes.contains("7") && playerTurn.equals(playerUniqueId))
                 {
                     ((ImageView)v).setImageResource(drawable.new_x_icon);
     
@@ -576,7 +590,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v)
             {
                 // check if the box is not selected before & current player's turn
-                if (doneBoxes.contains("8") && playerTurn.equals(playerUniqueId))
+                if (!doneBoxes.contains("8") && playerTurn.equals(playerUniqueId))
                 {
                     ((ImageView)v).setImageResource(drawable.new_x_icon);
     
@@ -599,7 +613,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v)
             {
                 // check if the box is not selected before & current player's turn
-                if (doneBoxes.contains("9") && playerTurn.equals(playerUniqueId))
+                if (!doneBoxes.contains("9") && playerTurn.equals(playerUniqueId))
                 {
                     ((ImageView)v).setImageResource(drawable.new_x_icon);
     
@@ -619,35 +633,51 @@ public class MainActivity extends AppCompatActivity
     
     private void applyPlayerTurn(String playerUniqueId2)
     {
-//        if (playerUniqueId2.equals(playerUniqueId))
-//        {
-//            // check backgrounds again
-//            player1Layout.setBackgroundResource(drawable.transparent_background);
-//            player2Layout.setBackgroundResource(drawable.transparent_background);
-//        }
-//        else
-//        {
-//            // check backgrounds again
-//            player2Layout.setBackgroundResource(drawable.transparent_background);
-//            player1Layout.setBackgroundResource(drawable.transparent_background);
-//        }
+        if (playerUniqueId2.equals(playerUniqueId))
+        {
+            // check backgrounds
+            player2TV.setTextColor(getResources().getColor(color.grey));
+            player1TV.setTextColor(getResources().getColor(color.white));
+        }
+        else
+        {
+            // check backgrounds
+            player2TV.setTextColor(getResources().getColor(color.white));
+            player1TV.setTextColor(getResources().getColor(color.grey));
+        }
     
     }
     
     private void selectBox(ImageView imageView, int selectedBoxPosition, String selectedByPlayer)
     {
         boxesSelectedBy[selectedBoxPosition - 1] = selectedByPlayer;
+        final MediaPlayer o_chime = MediaPlayer.create(this, raw.o_bell);
         
         if(selectedByPlayer.equals(playerUniqueId))
         {
             imageView.setImageResource(drawable.new_x_icon);
             playerTurn = opponentUniqueId;
-
         }
         else
         {
             imageView.setImageResource(drawable.new_o_icon);
             playerTurn = playerUniqueId;
+//            imageView.setOnFocusChangeListener(new View.OnFocusChangeListener()
+//            {
+//                @Override
+//                public void onFocusChange(View view, boolean b)
+//                {
+//                    o_chime.start();
+//                }
+//            });
+            imageView.setOnClickListener(new View.OnClickListener()
+            {
+                @Override
+                public void onClick(View view)
+                {
+                    o_chime.start();
+                }
+            });
         }
         
         applyPlayerTurn(playerTurn);
@@ -661,14 +691,14 @@ public class MainActivity extends AppCompatActivity
         // checking the game if there are no more boxes to be selected
         if (doneBoxes.size() == 9)
         {
-            final WinDialog winDialog = new WinDialog(MainActivity.this, "It is a Draw!");
+            final WinDialog winDialog = new WinDialog(MainActivity.this, "It is a Tie!");
             winDialog.setCancelable(false);
             winDialog.show();
             
-            // updates tie counter
-//            ties++;
-//            tieTV.setText(ties);
-            
+//            // updates tie counter
+//            tieScore++;
+//            tieTV.setText(tieScore);
+        
         }
     }
     

@@ -45,14 +45,16 @@ public class WinDialog extends Dialog
             }
         });
         
-//        remBtn.setOnClickListener(new View.OnClickListener()
-//        {
-//            @Override
-//            public void onClick(View view)
-//            {
-//                dismiss();
-//            }
-//        });
+        remBtn.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                dismiss();
+                getContext().startActivity(new Intent(getContext(), MainActivity.class));
+                mainActivity.finish();
+            }
+        });
         
     }
 }
