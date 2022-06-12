@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
@@ -20,17 +21,22 @@ public class PlayerName extends AppCompatActivity
     
         final EditText playerNameEt = findViewById(R.id.playerNamerEt);
         final AppCompatButton startGameBtn = findViewById(R.id.startGameBtn);
+        final MediaPlayer start_chime;
     
-    
+        start_chime = MediaPlayer.create(this, R.raw.start_bell);
+        
         startGameBtn.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View view)
             {
+                final int playerScore = 0;
+                final int opponentScore = 0;
+                
                 // getting playername from EditText to a String variable
                 final String getPlayerName = playerNameEt.getText().toString();
             
-                // checking wether olayer has entered his name
+                // checking whether player has entered his name
                 if (getPlayerName.isEmpty()){
                     Toast.makeText(PlayerName.this, "Please enter player name", Toast.LENGTH_SHORT).show();
                 }
@@ -41,13 +47,16 @@ public class PlayerName extends AppCompatActivity
                 
                     // adding player name along with intent
                     intent.putExtra("playerName",getPlayerName);
-                
+                    intent.putExtra("rematch",false);
+                    intent.putExtra("playerScore",playerScore);
+                    intent.putExtra("opponentScore",opponentScore);
                     // opening MainActivity
                     startActivity(intent);
                 
                     // destroy this(PlayerName) activity
                     finish();
-                
+                    
+                    start_chime.start();
                 
                 }
             }

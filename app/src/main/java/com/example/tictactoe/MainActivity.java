@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.MediaPlayer;
@@ -43,7 +44,7 @@ public class MainActivity extends AppCompatActivity
     private final List<int[]> combinationsList = new ArrayList<>();
     
     // done boxes positions by players so players can't select them again
-    private final List<String> doneBoxes = new ArrayList<>();
+    private List<String> doneBoxes = new ArrayList<>();
     
     // player unique ID
     private String playerUniqueId = "0";
@@ -53,9 +54,6 @@ public class MainActivity extends AppCompatActivity
     
     // true when opponent will be found to play the game
     private boolean opponentFound = false;
-    
-    // true when player clicks rematch
-    private boolean rematch = false;
     
     // opponent unique ID
     private String opponentUniqueId = "0";
@@ -67,10 +65,22 @@ public class MainActivity extends AppCompatActivity
     // player turn
     private String playerTurn = "";
     
+    // opponent chime
+    private static MediaPlayer o_chime;
+    private static MediaPlayer win_chime;
+    private static MediaPlayer lose_chime;
     
     // connection ID in which the player has joined to play the game
     private String connectionID = "";
     
+    // room ID
+    private String roomId = "";
+    
+    // room ID for rematching
+    private String roomIdCheck = "";
+    
+    // playerName from previous game
+    private String playerName = "";
     
     // Generating ValueEventListeners for Firebase Database
     // turnsEventListener listens for the players turns
@@ -79,7 +89,10 @@ public class MainActivity extends AppCompatActivity
     
     // selected boxes by players
     // empty fields will be replaced by player ids
-    private final String[] boxesSelectedBy = {"","","","","","","","",""};
+    private String[] boxesSelectedBy = {"","","","","","","","",""};
+    
+    // setting the playerWon to false as initialization
+    private boolean isPlayerWon = false;
     
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -88,11 +101,31 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(layout.activity_main);
         
-        final MediaPlayer o_chime = MediaPlayer.create(this, raw.o_bell);
+//        final MediaPlayer o_chime = MediaPlayer.create(this, raw.o_bell);
         final MediaPlayer x_chime = MediaPlayer.create(this, raw.x_bell);
+    
+        // getting PlayerName from PlayerName.class file
+        final String getPlayerName = getIntent().getStringExtra("playerName");
+        playerName = getPlayerName;
+    
+        // getting rematch from WinDialog.class file
+        final boolean rematch = getIntent().getBooleanExtra("reMatch",false);
+        if (rematch)
+        {
+//            roomIdCheck = getIntent().getStringExtra("roomId");
+//            boxesSelectedBy = getIntent().getStringArrayExtra("boxesSelectedBy");
+//            doneBoxes = getIntent().getStringArrayListExtra("doneBoxes");
+//            playerUniqueId = getIntent().getStringExtra("playerUniqueId");
+//            playerUniqueId = String.valueOf(System.currentTimeMillis());
+            player1Score = getIntent().getIntExtra("playerScore",0);
+            player2Score = getIntent().getIntExtra("opponentScore",0);
+            tieScore = getIntent().getIntExtra("tieScore",0);
+        }
         
-    
-    
+            // generate player unique id, Player will be identified by this id
+            playerUniqueId = String.valueOf(System.currentTimeMillis());
+        
+        
         player1Layout = findViewById(id.player1Layout);
         player2Layout = findViewById(id.player2Layout);
         
@@ -113,11 +146,6 @@ public class MainActivity extends AppCompatActivity
         player2pointTV = findViewById(id.player2pointTV);
     
         tieTV = findViewById(id.tieTV);
-        
-        
-        // getting PlayerName from PlayerName.class file
-        final String getPlayerName = getIntent().getStringExtra("playerName");
-        
         
         // generating winning combinations
         // horizontal wins
@@ -144,11 +172,12 @@ public class MainActivity extends AppCompatActivity
 //        databaseReference=FirebaseDatabase.getInstance().getReference("connections");
 //        databaseReference.setValue(null);
         
-        // generate player unique id, Player will be identified by this id
-        playerUniqueId = String.valueOf(System.currentTimeMillis());
         
         // setting the player name to the TextView
         player1TV.setText(getPlayerName);
+        player1pointTV.setText(String.valueOf(player1Score));
+        player2pointTV.setText(String.valueOf(player2Score));
+        tieTV.setText(String.valueOf(tieScore));
         
         databaseReference.child("connections").addValueEventListener(new ValueEventListener()
         {
@@ -165,7 +194,9 @@ public class MainActivity extends AppCompatActivity
                         for (DataSnapshot connections : snapshot.getChildren())
                         {
                             // getting connection unique ID
-                            String conId = connections.getKey();
+                            roomId = connections.getKey();
+    
+                            String conId = roomId;
                             
                             // 2 players are required to start the game
                             // if getPlayersCount is 1 it means that there is another player waiting for an opponent to play the game
@@ -390,18 +421,21 @@ public class MainActivity extends AppCompatActivity
                     
                     if (getWinPlayerID.equals(playerUniqueId))
                     {
+                        player1Score++;
                         // show win dialog
-                        winDialog = new WinDialog(MainActivity.this, "You have won the game");
-                        
+                        winDialog = new WinDialog(MainActivity.this, "You have won the game", connectionID, getPlayerName, playerUniqueId, player1Score, player2Score, tieScore);
+//                        setPlayerScore(playerUniqueId);
+//                        playWinSound(this);
                         // update player 1 score
 //                        player1Score++;
 //                        player1pointTV.setText(player1Score);
                     }
                     else
                     {
+                        player2Score++;
                         // show win dialog
-                        winDialog = new WinDialog(MainActivity.this, "You have lost the game");
-                        
+                        winDialog = new WinDialog(MainActivity.this, "You have lost the game", connectionID, getPlayerName, playerUniqueId, player1Score, player2Score, tieScore);
+//                        playLoseSound(this);
                         // update player 2 score
 //                        player2Score++;
 //                        player2pointTV.setText(player2Score);
@@ -415,6 +449,18 @@ public class MainActivity extends AppCompatActivity
                     databaseReference.child("won").child(connectionID).removeEventListener(wonEventsListener);
                 }
             }
+    
+//            private void playWinSound(ValueEventListener valueEventListener)
+//            {
+//                win_chime = MediaPlayer.create((Context) valueEventListener, raw.win_bell);
+//                win_chime.start();
+//            }
+//
+//            private void playLoseSound(ValueEventListener valueEventListener)
+//            {
+//                lose_chime = MediaPlayer.create((Context) valueEventListener, raw.lose_bell);
+//                lose_chime.start();
+//            }
     
             @Override
             public void onCancelled(@NonNull DatabaseError error)
@@ -651,7 +697,6 @@ public class MainActivity extends AppCompatActivity
     private void selectBox(ImageView imageView, int selectedBoxPosition, String selectedByPlayer)
     {
         boxesSelectedBy[selectedBoxPosition - 1] = selectedByPlayer;
-        final MediaPlayer o_chime = MediaPlayer.create(this, raw.o_bell);
         
         if(selectedByPlayer.equals(playerUniqueId))
         {
@@ -662,22 +707,7 @@ public class MainActivity extends AppCompatActivity
         {
             imageView.setImageResource(drawable.new_o_icon);
             playerTurn = playerUniqueId;
-//            imageView.setOnFocusChangeListener(new View.OnFocusChangeListener()
-//            {
-//                @Override
-//                public void onFocusChange(View view, boolean b)
-//                {
-//                    o_chime.start();
-//                }
-//            });
-            imageView.setOnClickListener(new View.OnClickListener()
-            {
-                @Override
-                public void onClick(View view)
-                {
-                    o_chime.start();
-                }
-            });
+            playOpponentSound(this);
         }
         
         applyPlayerTurn(playerTurn);
@@ -691,20 +721,18 @@ public class MainActivity extends AppCompatActivity
         // checking the game if there are no more boxes to be selected
         if (doneBoxes.size() == 9)
         {
-            final WinDialog winDialog = new WinDialog(MainActivity.this, "It is a Tie!");
+            // updates tie counter
+            tieScore++;
+            
+            final WinDialog winDialog = new WinDialog(MainActivity.this, "It is a Tie!", connectionID, playerName, playerUniqueId, player1Score, player2Score, tieScore);
             winDialog.setCancelable(false);
             winDialog.show();
-            
-//            // updates tie counter
-//            tieScore++;
-//            tieTV.setText(tieScore);
         
         }
     }
     
     private boolean checkPlayerWin(String playerid)
     {
-        boolean isPlayerWon = false;
         
         // compare player turns with every winning combination
         for (int i = 0; i < combinationsList.size(); i++)
@@ -721,5 +749,36 @@ public class MainActivity extends AppCompatActivity
         }
         
         return isPlayerWon;
+    }
+    
+    
+    public static void playOpponentSound(Context con)
+    {
+        o_chime= MediaPlayer.create(con, raw.o_bell);
+        o_chime.start();
+    }
+//    public static void playWinSound(Context con)
+//    {
+//        win_chime = MediaPlayer.create(con, raw.win_bell);
+//        win_chime.start();
+//    }
+//    public static void playLoseSound(Context con)
+//    {
+//        lose_chime= MediaPlayer.create(con, raw.lose_bell);
+//        lose_chime.start();
+//    }
+    
+    public void setPlayerScore(String playerUniqueId)
+    {
+        if (playerTurn.equals(playerUniqueId))
+        {
+            player1Score++;
+            player1pointTV.setText(player1Score);
+        }
+        else
+        {
+            player2Score++;
+            player2pointTV.setText(player2Score);
+        }
     }
 }
