@@ -187,7 +187,7 @@ public class MainActivity extends AppCompatActivity
                 // check if opponent found or not, if not then look for the opponent
                 if (!opponentFound)
                 {
-                    // checking if there are other players in the firebase realtime database
+                    // checking if there are other players/rooms in the firebase realtime database
                     if (snapshot.hasChildren() || rematch)
                     {
                         // checking all connections if other users are also waiting for a user to play the match
@@ -223,7 +223,7 @@ public class MainActivity extends AppCompatActivity
                                         // check if player id match with player who created connection (this player)
                                         // if match then get opponent details
                                         if (get2ndPlayerUniqueID.equals(playerUniqueId))
-                                        {   // traceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+                                        {
                                             playerFound = true;
                                         }
                                         else if (playerFound)
@@ -719,7 +719,7 @@ public class MainActivity extends AppCompatActivity
             databaseReference.child("won").child(connectionID).child("player_id").setValue(selectedByPlayer);
         }
         // checking the game if there are no more boxes to be selected
-        if (doneBoxes.size() == 9)
+        if (doneBoxes.size() == 9 && !checkPlayerWin(selectedByPlayer) )
         {
             // updates tie counter
             tieScore++;
